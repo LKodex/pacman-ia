@@ -2,6 +2,8 @@
 
 Aluno: [Lucas Gonçalves Cordeiro](mailto:lucas.g.cordeiro@ufms.br) (2021.1906.031-0)
 
+O projeto está público no GitHub -> [LKodex/pacman-ia](https://github.com/LKodex/pacman-ia)
+
 ## Resumo do Projeto
 
 Deverão ser implementados algoritmos Minimax, Minimax com poda Alfa-Beta e Expectimax em uma versão do jogo do Pacman fornecida pelo professor. Também deverá ser implementada um algoritmo de avaliação `betterEvaluationFunction` melhor que o algoritmo padrão que considera apenas a pontuação atual do jogo.
