@@ -15,7 +15,8 @@
 from util import manhattanDistance
 from game import Directions
 from pacman import GameState
-import random, util
+import util
+import heapq
 
 from game import Agent
 
@@ -27,6 +28,7 @@ def scoreEvaluationFunction(currentGameState: GameState) -> float:
     This evaluation function is meant for use with adversarial search agents
     (not reflex agents).
     """
+    return better(currentGameState)
     return currentGameState.getScore()
 
 class MultiAgentSearchAgent(Agent):
@@ -241,15 +243,63 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             bestValue += probability * successorValue 
         return bestValue, bestAction
 
-def betterEvaluationFunction(currentGameState):
+def betterEvaluationFunction(currentGameState: GameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
     DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()    
+
+    score = currentGameState.getScore()
+    pacmanPosition = currentGameState.getPacmanPosition()
+    shortestPathLengthToFood = calculateShortestPathLengthToFood(pacmanPosition, currentGameState)
+    score -= shortestPathLengthToFood
+
+    numFood = currentGameState.getNumFood()
+    REMAINING_FOOD_WEIGHT = 15
+    score -= numFood * REMAINING_FOOD_WEIGHT
+
+    return score
+
+def calculateShortestPathLengthToFood(agentPosition, gameState: GameState):
+    foodGrid = gameState.getFood()
+    wallGrid = gameState.getWalls()
+    capsulesList = gameState.getCapsules()
+
+    queue = [(0, agentPosition[0], agentPosition[1])]
+    costs = { agentPosition: 0 }
+
+    while queue:
+        currentCost, x, y = heapq.heappop(queue)
+
+        hasFoodInTile = foodGrid[x][y] == True
+        hasCapsuleInTile = (x, y) in capsulesList
+        if hasFoodInTile or hasCapsuleInTile:
+            return currentCost
+
+        isMoreExpensiveThanOtherPathAlreadyExplored = currentCost > costs.get((x, y), float("inf"))
+        if isMoreExpensiveThanOtherPathAlreadyExplored:
+            continue
+
+        actions = (
+            (1, 0), # Directions.EAST
+            (-1, 0), # Directions.WEST
+            (0, 1), # Directions.NORTH
+            (0, -1) # Directions.SOUTH
+        )
+
+        for dx, dy in actions:
+            ax, ay = x + dx, y + dy
+
+            isXInbounds = 0 < ax < wallGrid.width
+            isYInbounds = 0 < ay < wallGrid.height
+            if isXInbounds and isYInbounds:
+                nextCost = currentCost + 1
+                if nextCost < costs.get((ax, ay), float("inf")):
+                    costs[(ax, ay)] = nextCost
+                    heapq.heappush(queue, (nextCost, ax, ay))
+    return -1
 
 # Abbreviation
 better = betterEvaluationFunction
