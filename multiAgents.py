@@ -248,34 +248,59 @@ def betterEvaluationFunction(currentGameState: GameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+        - Removes points for each remaining Food
+        - Removes points for each remaining Capsules
+        - Removes points by how far Pacman is to the nearest Food or Capsule
+        - Removes or adds additional points on lose/win
+        - Adds points by how close the Ghost is to the Capsules and how close Pacman is to that Ghost
+
+    We try to incentive the Pacman to get all the foods and avoid bad movement behavior by removing points
+    for each food and capsule remaining, removing points by how far away Pacman is to the nearest food or capsule,
+    adding points by how close the Ghost is to a capsule and how close Pacman is to that Ghost.
+    We also add additional points on Win and remove additional points on Lose to balance the Win/Lose bonus/penalty.
     """
+    weights = {
+        "PACMAN_DISTANCE_TO_FOOD": 5,
+        "REMAINING_FOOD": 25,
+        "REMAINING_CAPSULES": 25,
+        "WIN": 250,
+        "LOSE": 250,
+        "EATING_GHOST": 500
+    }
 
     score = currentGameState.getScore()
+    foodGrid = currentGameState.getFood()
+    capsulesList = currentGameState.getCapsules()
     pacmanPosition = currentGameState.getPacmanPosition()
-    shortestPathLengthToFood = calculateShortestPathLengthToFood(pacmanPosition, currentGameState)
-    score -= shortestPathLengthToFood
+    pacmanDistanceToFood = calculateShortestPathLengthTo(pacmanPosition, currentGameState, lambda x, y : foodGrid[x][y] == True or (x, y) in capsulesList)
 
-    numFood = currentGameState.getNumFood()
-    REMAINING_FOOD_WEIGHT = 15
-    score -= numFood * REMAINING_FOOD_WEIGHT
+    remainingCapsulesCount = len(capsulesList)
+    remainingFoodCount = currentGameState.getNumFood()
 
+    ghostPositions = currentGameState.getGhostPositions()
+    for position in ghostPositions:
+        ghostDistanceToCapsule = calculateShortestPathLengthTo(position, currentGameState, lambda x, y : (x, y) in capsulesList)
+        ghostDistanceToPacman = calculateShortestPathLengthTo(position, currentGameState, lambda x, y : (x, y) == pacmanPosition)
+        score += weights["EATING_GHOST"] * 1 ** (2 / max(ghostDistanceToCapsule, 1)) * 1 ** (2 / max(ghostDistanceToPacman, 1))
+
+    score -= remainingFoodCount * weights["REMAINING_FOOD"]
+    score -= remainingCapsulesCount * weights["REMAINING_CAPSULES"]    
+    score -= pacmanDistanceToFood * weights["PACMAN_DISTANCE_TO_FOOD"]
+    score -= weights["LOSE"] * currentGameState.isLose()
+    score += weights["WIN"] * currentGameState.isWin()
     return score
 
-def calculateShortestPathLengthToFood(agentPosition, gameState: GameState):
-    foodGrid = gameState.getFood()
+def calculateShortestPathLengthTo(agentPosition, gameState: GameState, isEndTarget):
     wallGrid = gameState.getWalls()
-    capsulesList = gameState.getCapsules()
 
-    queue = [(0, agentPosition[0], agentPosition[1])]
-    costs = { agentPosition: 0 }
+    queue = [(0, int(agentPosition[0]), int(agentPosition[1]))]
+    costs = { (int(agentPosition[0]), int(agentPosition[1])): 0 }
 
     while queue:
         currentCost, x, y = heapq.heappop(queue)
 
-        hasFoodInTile = foodGrid[x][y] == True
-        hasCapsuleInTile = (x, y) in capsulesList
-        if hasFoodInTile or hasCapsuleInTile:
+        if isEndTarget(x, y):
             return currentCost
 
         isMoreExpensiveThanOtherPathAlreadyExplored = currentCost > costs.get((x, y), float("inf"))
@@ -295,6 +320,9 @@ def calculateShortestPathLengthToFood(agentPosition, gameState: GameState):
             isXInbounds = 0 < ax < wallGrid.width
             isYInbounds = 0 < ay < wallGrid.height
             if isXInbounds and isYInbounds:
+                isCoordAWall = wallGrid[ax][ay] == True
+                if isCoordAWall:
+                    continue
                 nextCost = currentCost + 1
                 if nextCost < costs.get((ax, ay), float("inf")):
                     costs[(ax, ay)] = nextCost
