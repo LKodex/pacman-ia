@@ -14,11 +14,12 @@
 
 from util import manhattanDistance
 from game import Directions
+from pacman import GameState
 import random, util
 
 from game import Agent
 
-def scoreEvaluationFunction(currentGameState):
+def scoreEvaluationFunction(currentGameState: GameState) -> float:
     """
     This default evaluation function just returns the score of the state.
     The score is the same one displayed in the Pacman GUI.
@@ -45,7 +46,7 @@ class MultiAgentSearchAgent(Agent):
 
     def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
         self.index = 0 # Pacman is always agent index 0
-        self.evaluationFunction = util.lookup(evalFn, globals())
+        self.evaluationFunction: function[float] = util.lookup(evalFn, globals())
         self.depth = int(depth)
 
 class MinimaxAgent(MultiAgentSearchAgent):
@@ -53,7 +54,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
     Your minimax agent (question 2)
     """
 
-    def getAction(self, gameState):
+    def getAction(self, gameState: GameState) -> Directions:
         """
         Returns the minimax action from the current gameState using self.depth
         and self.evaluationFunction.
@@ -76,8 +77,52 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        _value, action = self.minimaxValue(gameState, 0, 0)
+        return action
+
+    def minimaxValue(self, state: GameState, depth, agentIndex) -> tuple[float, Directions]:
+        totalAgents = state.getNumAgents()
+        if agentIndex >= totalAgents:
+            agentIndex = 0
+            depth += 1
+
+        hasReachedMaxDepth = depth >= self.depth
+        isGameLose = state.isLose()
+        isGameWin = state.isWin()
+        isTerminalState = hasReachedMaxDepth or isGameLose or isGameWin
+        if isTerminalState:
+            return self.evaluationFunction(state), None
+        
+        isMax = agentIndex == 0 # agent is Pacman
+        if isMax:
+            return self.maxValue(state, depth, agentIndex)
+        else:
+            return self.minValue(state, depth, agentIndex)
+
+    def maxValue(self, state: GameState, depth, agentIndex):
+        bestValue = float("-inf")
+        bestAction = None
+        legalActions = state.getLegalActions(agentIndex)
+        for action in legalActions:
+            successor = state.generateSuccessor(agentIndex, action)
+            successorValue, _successorAction = self.minimaxValue(successor, depth, agentIndex + 1)
+            if successorValue >= bestValue:
+                bestValue = successorValue
+                bestAction = action
+        return bestValue, bestAction
+    
+    def minValue(self, state: GameState, depth, agentIndex):
+        bestValue = float("inf")
+        bestAction = None
+        legalActions = state.getLegalActions(agentIndex)
+        for action in legalActions:
+            successor = state.generateSuccessor(agentIndex, action)
+            successorValue, _successorAction = self.minimaxValue(successor, depth, agentIndex + 1)
+            if successorValue <= bestValue:
+                bestValue = successorValue
+                bestAction = action
+        return bestValue, bestAction
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
