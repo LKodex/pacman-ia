@@ -196,8 +196,50 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        _value, action = self.expectimaxValue(gameState, 0, 0)
+        return action
+
+    def expectimaxValue(self, state: GameState, depth, agentIndex) -> tuple[float, Directions]:
+        totalAgents = state.getNumAgents()
+        if agentIndex >= totalAgents:
+            agentIndex = 0
+            depth += 1
+
+        hasReachedMaxDepth = depth >= self.depth
+        isGameLose = state.isLose()
+        isGameWin = state.isWin()
+        isTerminalState = hasReachedMaxDepth or isGameLose or isGameWin
+        if isTerminalState:
+            return self.evaluationFunction(state), None
+        
+        isMax = agentIndex == 0 # agent is Pacman
+        if isMax:
+            return self.maxValue(state, depth, agentIndex)
+        else:
+            return self.expValue(state, depth, agentIndex)
+
+    def maxValue(self, state: GameState, depth, agentIndex):
+        bestValue = float("-inf")
+        bestAction = None
+        legalActions = state.getLegalActions(agentIndex)
+        for action in legalActions:
+            successor = state.generateSuccessor(agentIndex, action)
+            successorValue, _successorAction = self.expectimaxValue(successor, depth, agentIndex + 1)
+            if successorValue >= bestValue:
+                bestValue = successorValue
+                bestAction = action
+        return bestValue, bestAction
+    
+    def expValue(self, state: GameState, depth, agentIndex):
+        bestValue = 0
+        bestAction = None
+        legalActions = state.getLegalActions(agentIndex)
+        probability = 1 / len(legalActions)
+        for action in legalActions:
+            successor = state.generateSuccessor(agentIndex, action)
+            successorValue, _successorAction = self.expectimaxValue(successor, depth, agentIndex + 1)
+            bestValue += probability * successorValue 
+        return bestValue, bestAction
 
 def betterEvaluationFunction(currentGameState):
     """
