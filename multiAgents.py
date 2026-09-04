@@ -269,6 +269,11 @@ def betterEvaluationFunction(currentGameState: GameState):
         "EATING_GHOST": 500
     }
 
+    configs = {
+        "PACMAN_DISTANCE_TO_CAPSULE": 2,
+        "GHOST_DISTANCE_TO_CAPSULE": 3,
+    }
+
     score = currentGameState.getScore()
     foodGrid = currentGameState.getFood()
     capsulesList = currentGameState.getCapsules()
@@ -283,8 +288,9 @@ def betterEvaluationFunction(currentGameState: GameState):
         ghostDistanceToCapsule, targetCapsulePosition = calculateNearestPathTo(position, currentGameState, lambda x, y : (x, y) in capsulesList)
         pacmanDistanceToCapsuleNearTheGhost, _targetPosition = calculateNearestPathTo(pacmanPosition, currentGameState, lambda x, y : (x, y) == targetCapsulePosition)
 
-        ghostDistanceToCapsuleInfluencePercentage = min(1, 1 / (max(2, ghostDistanceToCapsule) - 1) ** 2)
-        ghostDistanceToPacmanInfluencePercentage = min(1, 1 / (max(2, pacmanDistanceToCapsuleNearTheGhost) - 1) ** 2)
+        HUNDRED_PERCENT = 1
+        ghostDistanceToCapsuleInfluencePercentage = min(HUNDRED_PERCENT, 1 / (max(configs["GHOST_DISTANCE_TO_CAPSULE"], ghostDistanceToCapsule) - configs["GHOST_DISTANCE_TO_CAPSULE"] + 1) ** 2)
+        ghostDistanceToPacmanInfluencePercentage = min(HUNDRED_PERCENT, 1 / (max(configs["PACMAN_DISTANCE_TO_CAPSULE"], pacmanDistanceToCapsuleNearTheGhost) - configs["PACMAN_DISTANCE_TO_CAPSULE"] + 1) ** 2)
 
         hasRemainingCapsules = remainingCapsulesCount > 0
 
