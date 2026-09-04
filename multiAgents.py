@@ -273,16 +273,22 @@ def betterEvaluationFunction(currentGameState: GameState):
     foodGrid = currentGameState.getFood()
     capsulesList = currentGameState.getCapsules()
     pacmanPosition = currentGameState.getPacmanPosition()
-    pacmanDistanceToFood = calculateShortestPathLengthTo(pacmanPosition, currentGameState, lambda x, y : foodGrid[x][y] == True or (x, y) in capsulesList)
+    pacmanDistanceToFood, _targetPosition = calculateNearestPathTo(pacmanPosition, currentGameState, lambda x, y : foodGrid[x][y] == True or (x, y) in capsulesList)
 
     remainingCapsulesCount = len(capsulesList)
     remainingFoodCount = currentGameState.getNumFood()
 
     ghostPositions = currentGameState.getGhostPositions()
     for position in ghostPositions:
-        ghostDistanceToCapsule = calculateShortestPathLengthTo(position, currentGameState, lambda x, y : (x, y) in capsulesList)
-        ghostDistanceToPacman = calculateShortestPathLengthTo(position, currentGameState, lambda x, y : (x, y) == pacmanPosition)
-        score += weights["EATING_GHOST"] * 1 ** (2 / max(ghostDistanceToCapsule, 1)) * 1 ** (2 / max(ghostDistanceToPacman, 1))
+        ghostDistanceToCapsule, targetCapsulePosition = calculateNearestPathTo(position, currentGameState, lambda x, y : (x, y) in capsulesList)
+        pacmanDistanceToCapsuleNearTheGhost, _targetPosition = calculateNearestPathTo(pacmanPosition, currentGameState, lambda x, y : (x, y) == targetCapsulePosition)
+
+        ghostDistanceToCapsuleInfluencePercentage = min(1, 1 / (max(2, ghostDistanceToCapsule) - 1) ** 2)
+        ghostDistanceToPacmanInfluencePercentage = min(1, 1 / (max(2, pacmanDistanceToCapsuleNearTheGhost) - 1) ** 2)
+
+        hasRemainingCapsules = remainingCapsulesCount > 0
+
+        score += weights["EATING_GHOST"] * ghostDistanceToCapsuleInfluencePercentage * ghostDistanceToPacmanInfluencePercentage * hasRemainingCapsules
 
     score -= remainingFoodCount * weights["REMAINING_FOOD"]
     score -= remainingCapsulesCount * weights["REMAINING_CAPSULES"]    
@@ -291,7 +297,7 @@ def betterEvaluationFunction(currentGameState: GameState):
     score += weights["WIN"] * currentGameState.isWin()
     return score
 
-def calculateShortestPathLengthTo(agentPosition, gameState: GameState, isEndTarget):
+def calculateNearestPathTo(agentPosition, gameState: GameState, isEndTarget) -> tuple[int, tuple[int, int]]:
     wallGrid = gameState.getWalls()
 
     queue = [(0, int(agentPosition[0]), int(agentPosition[1]))]
@@ -301,7 +307,7 @@ def calculateShortestPathLengthTo(agentPosition, gameState: GameState, isEndTarg
         currentCost, x, y = heapq.heappop(queue)
 
         if isEndTarget(x, y):
-            return currentCost
+            return currentCost, (x, y)
 
         isMoreExpensiveThanOtherPathAlreadyExplored = currentCost > costs.get((x, y), float("inf"))
         if isMoreExpensiveThanOtherPathAlreadyExplored:
@@ -327,7 +333,7 @@ def calculateShortestPathLengthTo(agentPosition, gameState: GameState, isEndTarg
                 if nextCost < costs.get((ax, ay), float("inf")):
                     costs[(ax, ay)] = nextCost
                     heapq.heappush(queue, (nextCost, ax, ay))
-    return -1
+    return -1, (-1, -1)
 
 # Abbreviation
 better = betterEvaluationFunction
