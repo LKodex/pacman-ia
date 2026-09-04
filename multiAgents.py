@@ -262,8 +262,8 @@ def betterEvaluationFunction(currentGameState: GameState):
     """
     weights = {
         "PACMAN_DISTANCE_TO_FOOD": 5,
-        "REMAINING_FOOD": 25,
-        "REMAINING_CAPSULES": 25,
+        "REMAINING_FOOD": 50,
+        "REMAINING_CAPSULES": 50,
         "WIN": 250,
         "LOSE": 250,
         "EATING_GHOST": 500
